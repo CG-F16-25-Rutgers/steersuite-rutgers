@@ -26,8 +26,8 @@ CurveAgent::CurveAgent()
 	_enabled = false;
 
 	// Set curve type here
-	curve.setType(Util::hermiteCurve);
-	//curve.setType(Util::catmullCurve);
+	//curve.setType(Util::hermiteCurve);
+	curve.setType(Util::catmullCurve);
 }
 
 CurveAgent::~CurveAgent()
@@ -155,6 +155,7 @@ void CurveAgent::draw()
 {
 #ifdef ENABLE_GUI
 	// if the agent is selected, do some annotations just for demonstration
+	static float theta=0;//for spinning the star
 	if (gEngine->isAgentSelected(this)) {
 		Util::Ray ray;
 		ray.initWithUnitInterval(__position, _forward);
@@ -169,7 +170,10 @@ void CurveAgent::draw()
 		}
 	}
 	else {
+		Util::DrawLib::drawStar(__position, rotateInXZPlane(_forward, theta), _radius*3, Util::Color(agentColor.r*0.5+0.5,agentColor.g*0.5+0.5,agentColor.b*0.5+0.5));
+		theta+=0.1;if (theta>6.28){theta-=6.28;}//hack to rotate a star
 		Util::DrawLib::drawAgentDisc(__position, _forward, _radius, agentColor);
+		
 	}
 
 	// Draw flags for all goal targets
