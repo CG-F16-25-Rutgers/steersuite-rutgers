@@ -32,6 +32,28 @@
 class SocialForcesAgent : public SteerLib::AgentInterface
 {
 public:
+//begin behaviours: need to store parameters for easy access
+	bool err=false;//debug output
+	bool should_update_behaviours=true;//update in the first updateAI call, and also when the goal is changed or something else wants the agent to update
+	void updateBehaviours();
+	std::string name;//need to save the name for pursue querying
+	std::vector<SocialForcesAgent*> pursue_agents;std::vector<SocialForcesAgent*> evade_agents;//references to agents this agent should follow or evade; to avoid the trouble of checking the name each frame
+	float pursue_force=1;float evade_force=1;float pursue_force_exp=-INFINITY;float evade_force_exp=0;bool pursue_force_normalize=false;bool evade_force_normalize=false;bool pursue_evade_force_normalize=true;//whether to normalize the two forces before of after combining them
+	
+	//wall following
+	bool wall_following=false;bool clockwise=true;//meaning around the obstacle
+	float wall_following_force=100;float wall_attracting_force=100;//should be large enough to override the goal seeking
+	//TODO: support pursue/evade by id if no name is given, as in a group with popular and unpopular people
+	
+	////LEADER FOLLOWING VARS
+	static std::vector<SocialForcesAgent*> leaders;
+	SocialForcesAgent* leader;
+	Util::Point leaderPosition;
+	bool leader_following = false;
+	bool follow_visible_leader=false;
+	float avoiding_leaders_path_force=5;
+	
+//end behaviours
 	SocialForcesAgent();
 	~SocialForcesAgent();
 	void reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo);
