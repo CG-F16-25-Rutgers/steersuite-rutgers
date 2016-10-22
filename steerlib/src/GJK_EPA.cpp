@@ -324,7 +324,7 @@ void EPA(const std::vector<Util::Vector>& A,const std::vector<Util::Vector>& B,s
         }
     }
 }
-
+/*
 bool decomposition(float& return_penetration_depth, Util::Vector& return_penetration_vector, const std::vector<Util::Vector>& _shapeA, const std::vector<Util::Vector>& _shapeB){
     
     std::vector<std::vector<Util::Vector>> trianglesA; std::vector<std::vector<Util::Vector>> trianglesB;
@@ -442,6 +442,7 @@ bool sameSide(Util::Vector p1, Util::Vector p2, Util::Vector a, Util::Vector b){
     else
         return false
 }
+*/
 
 
 
