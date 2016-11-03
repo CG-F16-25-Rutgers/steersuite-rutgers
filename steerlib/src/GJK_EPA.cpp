@@ -320,10 +320,104 @@ void EPA(const std::vector<Util::Vector>& A,const std::vector<Util::Vector>& B,s
             //std::cerr <<"EPA new point: " << support->x <<","<<support->y <<","<< support->z << std::endl;
             std::vector<Util::Vector>::iterator iterator = simplex.begin();
             simplex.insert(simplex.begin()+edge.index, *support);
+<<<<<<< HEAD
             old_distance=edge.distance;
+=======
+			old_distance=edge.distance;
         }
     }
 }
+/*
+bool decomposition(float& return_penetration_depth, Util::Vector& return_penetration_vector, const std::vector<Util::Vector>& _shapeA, const std::vector<Util::Vector>& _shapeB){
+    
+    std::vector<std::vector<Util::Vector>> trianglesA; std::vector<std::vector<Util::Vector>> trianglesB;
+    
+    double leftmostA = DBL_MAX; double leftmostB = DBL_MAX;
+    int leftmostAIndex, leftmostBIndex;
+    //get leftmost points in shapes A and B
+    for(int i= 0; i<_shapeA.size(); i++){
+        if(_shapeA.get(i).x < leftmostA){
+            leftmostA = _shapeA.get(i).x;
+            leftmostAIndex = i;
+        }
+    }
+    
+    for(int i= 0; i<_shapeB.size(); i++){
+        if(_shapeA.get(i).x < leftmostA){
+            leftmostA = _shapeB.get(i).x;
+            leftmostBIndex = i;
+        }
+    }
+    
+    Util::Vector a1 = shapeA.get(leftmostAIndex); Util::Vector a2; Util::Vector a3; int nextPointIndex;
+    if(leftmostAIndex==(shape.size()-1))
+    {
+        a2 = _shapeA.get(0);
+        a3 = _shapeA.get(1);
+        nextPointIndex = 2;
+    }
+    else if(leftmostAIndex==(shape.size()-2))
+    {
+        a2 = _shapeA.get(shape.size()-1);
+        a3 = _shapeA.get(0);
+        nextPointIndex = 1;
+    }else
+    {
+        a2 = _shapeA.get(leftmostAIndex+1);
+        a3 = _shapeA.get(leftmostAIndex+2);
+        
+        if(leftMostAIndex == (shape.size()-1))
+            nextPointIndex = 0;
+        else
+            nextPointIndex = leftmostAIndex+2;
+        
+    }
+    //int insideA = 1;
+    //iterate through all non-triangle points, and check if they are within the current triangle
+    for(int i=nextPointIndex; nextPointIndex!=leftmostAIndex; i++)
+    {
+        //checks to see if point is outside rectangle surrounding triangle
+        double xMin = a1.x;
+        double xMax = DBL_MIN; double yMin = DBL_MAX; double yMax = DBL_Min;
+        
+        if(a2.x >= a3.x)
+            xMax = a2.x;
+        
+        if(a1.y >= a2.y)
+        {
+            yMax = a1.y;
+            if(a3.y>=yMax)
+                yMax = a3.y;
+        }
+        
+        if(a1.y <= a2.y)
+        {
+            yMin = a1.y;
+            if(a3.y<=yMin)
+                yMin = a3.y;
+        }
+        
+        if(_shapeA.get(i).x < xMin || _shapeA.get(i).x > xMax || _shapeA.get(i).y < yMin || _shapeA.get(i).y > yMax)
+            continue;
+        
+        //checks to see if point is inside triangle
+        else{
+            //point is inside triangle
+            if(sameSide(_shapeA.get(i), a1, a2, a3) && sameSide(_shapeA.get(i), a2, a1, a3) && sameSide(_shapeA.get(i), a3, a1, a2))
+            {
+            //TODO: set test triangle with an edge from the leftmost to the leftmost point inside of the triangle, I realize I have to keep iterating, but I don't know what the third vertex
+            //in this triangle should be
+            }
+            else//store triangle
+            {
+                triangle = new std::vector<Util::Vector>; tVertices = new Util::Vector(a1,a2,a3);
+                trianglesA.add(triangle);
+            }
+>>>>>>> dc2c2d2ef0be691901c17c16b57f680cc3af1a11
+        }
+    }
+}
+*/
 
 
 
