@@ -1,3 +1,8 @@
+
+
+
+
+
 #include "obstacles/GJK_EPA.h"
 
 static double delta[16][4];
@@ -20,24 +25,22 @@ double computeDelta(const std::vector<bool>& subset,unsigned int index,const std
             bitmask+=1<<i;cardinal++;if((min==-1)&&(i!=index)){min=i;}
         }//find the first element of the smaller subset to be used in the formula
     }
-    
-    
-    
-    if(deltaComputed[bitmask][index]){return delta[bitmask][index];}
-    //otherwise compute delta
+#ifdef DEBUG
+    std::cerr <<"Smaller set's first element is at " << min <<std::endl;
+#endif
     if(cardinal==1)
     {
-        if(subset[index])
-        {
-            delta[bitmask][index]=1;deltaComputed[bitmask][index]=true;return 1;
-        }
+        if(subset[index]){return 1;}
         else
         {
 #ifdef DEBUG
-            //std::cerr <<"Queried index doesn't exist in subset: " << index <<std::endl;
+            std::cerr <<"Queried index doesn't exist in subset: " << index <<std::endl;
 #endif
         }
     }
+    
+    if(deltaComputed[bitmask][index]){return delta[bitmask][index];}
+    //otherwise compute delta
     std::vector<bool> subset2(subset);
     subset2[index]=false;
     //this is the smaller subset to recurse on
@@ -50,11 +53,6 @@ double computeDelta(const std::vector<bool>& subset,unsigned int index,const std
         }
     }
     delta[bitmask][index]=sum;deltaComputed[bitmask][index]=true;
-    /*
-     #ifdef DEBUG
-     std::cerr << "Delta " << bitmask << ", " << index <<  "  is " << delta[bitmask][index] << std::endl;
-     #endif
-     */
     return sum;
 }
 
@@ -65,18 +63,11 @@ void getSubset(unsigned int bitmask,unsigned int length,std::vector<bool>& subse
         if(bitmask&(1<<i)){subset[i]=true;}else{subset[i]=false;}
     }
 }
-int instances=0;
+
+
 Util::Vector findClosest(std::vector<Util::Vector>& simplex)
 {
     //subalgorithm at page 197: suppose there are n points in the simplex. Allocate 2^n slots, with n+1 real numbers each. Consider an n-bit bitmask as meaning a subset of these n vertices. Compute Delta(i,subset) for each non-empty subset and each point i by the recursive formula: if the subset contains only the one element i, then delta(i,subset)=1; if the subset contains i and some other elements(denoted by subset2) then delta(i,subset)=sum over all j in subset2 of delta(j, subset2)*(point_j dot point_k - point_j dot point_i) where dot is the dot product of the vectors of the points' position, and k is the point in subset2 with the smallest index(actually choosing any point in subset2 gets the same result). If subset doesn't contain i, I don't think delta(i, subset) is defined, or maybe it defaults to 0. Delta (subset) is the sum of delta(i, subset) of all i in subset. The convex combination of a subset of simplex vertices that gives the closest point to origin, is given by the first subset that has the properties: delta(subset)>0(meaning the points are affinely independent), delta(i, subset)>0 for all i in it(the combination is convex), and delta(subset2,j)<=0 for any bigger subset2 that only has one more element j(the addition of another point doesn't contribute to getting closer to the origin). and the coefficients of the convex combination, lambda(i) is given by delta(i, subset)/delta(subset).
-#ifdef DEBUG
-    instances++;
-    //std::cerr << "entering delta calculations; simplex size is" << simplex.size()  << std::endl;
-    for(unsigned int index=0;index<simplex.size();index++)
-    {
-        //std::cerr << "Simplex point " << index <<  "  is " << simplex[index].x <<"," <<simplex[index].y<< "," <<simplex[index].z << std::endl;
-    }
-#endif
     for(int i=0;i<16;i++)
     {
         for(int j=0;j<4;j++)
@@ -96,11 +87,7 @@ Util::Vector findClosest(std::vector<Util::Vector>& simplex)
             //once a delta is computed, it is marked as computed and saved for future use
             if(subset[index]){deltaSum[bitmask]+=computeDelta(subset,index,simplex);}
             //simplex needed for the points dot product
-            
         }
-#ifdef DEBUG
-        //std::cerr << "Delta " << bitmask <<  "  is " << deltaSum[bitmask] << std::endl;
-#endif
     }
     
     //after all is done, find the subset you want: delta(subset)>0(meaning the points are affinely independent), delta(i, subset)>0 for all i in it(the combination is convex), and delta(subset2,j)<=0 for any bigger subset2 that only has one more element j(the addition of another point doesn't contribute to getting closer to the origin). and the coefficients of the convex combination, lambda(i) is given by delta(i, subset)/delta(subset).
@@ -112,7 +99,7 @@ Util::Vector findClosest(std::vector<Util::Vector>& simplex)
         OK=true;
         for(unsigned int index=0;index<count;index++)
         {
-            if((subset[index]==true)&&(delta[bitmask][index]<=0)){OK=false;break;}
+            if(delta[bitmask][index]<=0){OK=false;break;}
         }
         if(!OK){continue;}
         for(unsigned int index=0;index<count;index++)
@@ -120,39 +107,31 @@ Util::Vector findClosest(std::vector<Util::Vector>& simplex)
             if(subset[index]==false){if(delta[bitmask+(1<<index)][index]>0){OK=false;break;}}//test all bigger subsets that has one more element
         }
         if(!OK){continue;}
-        if(OK)
-        {
-            //std::cerr << "Simplex "<<bitmask<<" accepted!"<< std::endl;
-            break;
-        }
+        break;
     }
     if(OK)
     {
         //found combination;
         //return the closest point, and also prepare the simplex for next step by removing unused points that didn't contribute in the combination. the simplex is changed.
         std::vector<Util::Vector> newSimplex;
+#ifdef DEBUG
+        std::cerr <<"New Simplex size " << newSimplex.size() <<std::endl;
+#endif
         Util::Vector v;
         for(unsigned int index=0;index<count;index++)
         {
             if(subset[index]){newSimplex.push_back(simplex[index]);v+=simplex[index]*delta[bitmask][index]/deltaSum[bitmask];}
-            //else{delete &(simplex[index]);}
+            else{delete &(simplex[index]);}
         }
         //delete &simplex;//TODO: is this correct?
         simplex=newSimplex;
         //delete &subset;
-#ifdef DEBUG
-        //std::cerr <<"New Simplex size " << newSimplex.size() <<std::endl;
-#endif
         return v;
     }
     else
     {
 #ifdef DEBUG
-        //std::cerr <<"Closest point in simplex to origin is not found!" <<std::endl;
-        instances--;
-        static int failure=0;
-        failure++;
-        if(failure>10){exit(0);}
+        std::cerr <<"Closest point in simplex to origin is not found!" <<std::endl;
 #endif
     }
     
@@ -160,7 +139,7 @@ Util::Vector findClosest(std::vector<Util::Vector>& simplex)
 double getSupport(const Util::Vector& direction, Util::Vector& support,const std::vector<Util::Vector>& A)
 {
     double max=-INFINITY;
-    for(unsigned int i =0; i < A.size(); i++)
+    for(unsigned int i =1; i < A.size(); i++)
     {
         if(A[i]*direction>max){max=A[i]*direction;support=A[i];}
     }
@@ -182,15 +161,8 @@ bool GJK(std::vector<Util::Vector>& simplex,const std::vector<Util::Vector>& A, 
     Util::Vector origin;
     getMDSupport(A[0], *support,A,B);//TODO: just use the first point for debugging
     simplex.push_back(*support);
-    int iterations=0;
     while(true)
     {
-        iterations++;
-        if(iterations>7)
-        {
-            //std::cerr <<"Too many iterations in GJK!!" <<std::endl;
-            return false;
-        }
         //2. find a point v in simplex closest to origin: TODO: check each open subset given by a subset of the vertices in the simplex(at most 15 for 4 points), and see if they contain the support by a complicated subalgorithm (see below)
         Util::Vector v=findClosest(simplex);
         
@@ -198,7 +170,7 @@ bool GJK(std::vector<Util::Vector>& simplex,const std::vector<Util::Vector>& A, 
         //if v is the origin, it means they intersect and we should run EPA; if not, they don't intersect.
         //TODO
 #ifdef DEBUG
-        //std::cerr <<"Square of the length of the closest point to origin in MD: " << v*v <<std::endl;
+        std::cerr <<"Square of the length of the closest point to origin in MD: " << v*v <<std::endl;
 #endif
         if(v*v<_UTIL_GEOMETRY_EPSILON)
         {
@@ -206,11 +178,7 @@ bool GJK(std::vector<Util::Vector>& simplex,const std::vector<Util::Vector>& A, 
         }
         support=new Util::Vector();//the old support has become a part of the simplex so we don't delete it
         getMDSupport(origin-v,*support,A,B);
-#ifdef DEBUG
-        //std::cerr <<"V is: " << v.x << ","<< v.y << ","<< v.z <<std::endl;
-        //std::cerr <<"New support point in that direction: " << support->x << ","<< support->y << ","<< support->z <<std::endl;
-#endif
-        if((*support)*v>0)//TODO: I changed this, meaning they are on the same side of the origin,  not sure why suport*v<v*v is the original formula
+        if(*support*v<v*v)
         {
             return false;//no collision
         }
@@ -256,10 +224,9 @@ Util::Vector closestPointOnSegment(const Util::Vector& a, const Util::Vector& b)
 void findClosestEdge(std::vector<Util::Vector>& simplex, closestEdge& edge)
 {
     edge.distance = DBL_MAX;
-    unsigned int i,j,ai,bi;
-    for(i=0; i<simplex.size(); i++)
+    for(unsigned int i=0; i<simplex.size(); i++)
     {
-        //next point on the simplex
+        unsigned int j;//next point on the simplex
         if(i==(simplex.size()-1)){
             j = 0;
         }
@@ -277,11 +244,9 @@ void findClosestEdge(std::vector<Util::Vector>& simplex, closestEdge& edge)
         if(distance < edge.distance){
             edge.distance = distance;
             edge.index = j;
-            ai=i;bi=j;
             edge.normal = closest;//if closest point is not the normal(is one of the endpoints), it should be OK because that edge can't be the closest anyway, it won't be subdivided
         }
     }
-    //std::cerr <<ai<<", "<<bi<<" edge is: " << simplex[ai].x <<", "<<simplex[ai].z<<"; "<<simplex[bi].x<<","<< simplex[bi].z<<", Normal:"<<edge.normal.x<<","<<edge.normal.z<<std::endl;
     
 }
 
@@ -289,135 +254,27 @@ void findClosestEdge(std::vector<Util::Vector>& simplex, closestEdge& edge)
 void EPA(const std::vector<Util::Vector>& A,const std::vector<Util::Vector>& B,std::vector<Util::Vector>& simplex,float& return_penetration_depth,Util::Vector& return_penetration_vector)
 {
     Util::Vector* support;
-    int iterations=0;
-    double old_distance=0;
     while (1) {
-#ifdef DEBUG
-        //std::cerr << "EPA: simplex size is" << simplex.size()  << std::endl;
-        for(unsigned int index=0;index<simplex.size();index++)
-        {
-            //std::cerr << "Simplex point " << index <<  "  is " << simplex[index].x <<"," <<simplex[index].y<< "," <<simplex[index].z << std::endl;
-        }
-#endif
         //get edge closest to the origin on the Minkowski Difference (A-B), using the current simplex, using struct: closestEdge
-        iterations++;
         closestEdge edge;
         findClosestEdge(simplex, edge);
-        
         
         // get new support point in the direction of edge normal
         support=new Util::Vector;
         double max = getMDSupport(edge.normal, *support, A, B);
         
-        // check distance from origin to closestEdge against old min distance
-        //std::cerr <<"old distance: " << old_distance <<", new distance: "<<edge.distance <<", difference: "<< edge.distance -old_distance << std::endl;
-        //why the infinite loop?
-        if ((iterations>10)||(edge.distance -old_distance  < _UTIL_GEOMETRY_EPSILON)) {
-            return_penetration_vector = edge.normal;
-            return_penetration_depth = edge.distance;
+        // check distance from origin to closestEdge against support point distance
+        double distance = sqrt(*support * *support);
+        if (distance - edge.distance < _UTIL_GEOMETRY_EPSILON) {
+            return_penetration_vector = *support;
+            return_penetration_depth = distance;
             return;
         } else {//continue to expand simplex
-            //std::cerr <<"EPA new point: " << support->x <<","<<support->y <<","<< support->z << std::endl;
             std::vector<Util::Vector>::iterator iterator = simplex.begin();
             simplex.insert(simplex.begin()+edge.index, *support);
-<<<<<<< HEAD
-            old_distance=edge.distance;
-=======
-			old_distance=edge.distance;
         }
     }
 }
-/*
-bool decomposition(float& return_penetration_depth, Util::Vector& return_penetration_vector, const std::vector<Util::Vector>& _shapeA, const std::vector<Util::Vector>& _shapeB){
-    
-    std::vector<std::vector<Util::Vector>> trianglesA; std::vector<std::vector<Util::Vector>> trianglesB;
-    
-    double leftmostA = DBL_MAX; double leftmostB = DBL_MAX;
-    int leftmostAIndex, leftmostBIndex;
-    //get leftmost points in shapes A and B
-    for(int i= 0; i<_shapeA.size(); i++){
-        if(_shapeA.get(i).x < leftmostA){
-            leftmostA = _shapeA.get(i).x;
-            leftmostAIndex = i;
-        }
-    }
-    
-    for(int i= 0; i<_shapeB.size(); i++){
-        if(_shapeA.get(i).x < leftmostA){
-            leftmostA = _shapeB.get(i).x;
-            leftmostBIndex = i;
-        }
-    }
-    
-    Util::Vector a1 = shapeA.get(leftmostAIndex); Util::Vector a2; Util::Vector a3; int nextPointIndex;
-    if(leftmostAIndex==(shape.size()-1))
-    {
-        a2 = _shapeA.get(0);
-        a3 = _shapeA.get(1);
-        nextPointIndex = 2;
-    }
-    else if(leftmostAIndex==(shape.size()-2))
-    {
-        a2 = _shapeA.get(shape.size()-1);
-        a3 = _shapeA.get(0);
-        nextPointIndex = 1;
-    }else
-    {
-        a2 = _shapeA.get(leftmostAIndex+1);
-        a3 = _shapeA.get(leftmostAIndex+2);
-        
-        if(leftMostAIndex == (shape.size()-1))
-            nextPointIndex = 0;
-        else
-            nextPointIndex = leftmostAIndex+2;
-        
-    }
-    //int insideA = 1;
-    //iterate through all non-triangle points, and check if they are within the current triangle
-    for(int i=nextPointIndex; nextPointIndex!=leftmostAIndex; i++)
-    {
-        //checks to see if point is outside rectangle surrounding triangle
-        double xMin = a1.x;
-        double xMax = DBL_MIN; double yMin = DBL_MAX; double yMax = DBL_Min;
-        
-        if(a2.x >= a3.x)
-            xMax = a2.x;
-        
-        if(a1.y >= a2.y)
-        {
-            yMax = a1.y;
-            if(a3.y>=yMax)
-                yMax = a3.y;
-        }
-        
-        if(a1.y <= a2.y)
-        {
-            yMin = a1.y;
-            if(a3.y<=yMin)
-                yMin = a3.y;
-        }
-        
-        if(_shapeA.get(i).x < xMin || _shapeA.get(i).x > xMax || _shapeA.get(i).y < yMin || _shapeA.get(i).y > yMax)
-            continue;
-        
-        //checks to see if point is inside triangle
-        else{
-            //point is inside triangle
-            if(sameSide(_shapeA.get(i), a1, a2, a3) && sameSide(_shapeA.get(i), a2, a1, a3) && sameSide(_shapeA.get(i), a3, a1, a2))
-            {
-            //TODO: set test triangle with an edge from the leftmost to the leftmost point inside of the triangle, I realize I have to keep iterating, but I don't know what the third vertex
-            //in this triangle should be
-            }
-            else//store triangle
-            {
-                triangle = new std::vector<Util::Vector>; tVertices = new Util::Vector(a1,a2,a3);
-                trianglesA.add(triangle);
-            }
->>>>>>> dc2c2d2ef0be691901c17c16b57f680cc3af1a11
-        }
-    }
-}
-*/
 
 
 
