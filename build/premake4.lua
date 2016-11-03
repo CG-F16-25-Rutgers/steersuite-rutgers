@@ -487,6 +487,8 @@ project "collisionAI"
 		"util"
 	}
 	
+	buildoptions("-std=c++0x -ggdb" )
+	
 project "searchAI"
 	language "C++"
 	kind "SharedLib"
@@ -504,6 +506,8 @@ project "searchAI"
 		"steerlib",
 		"util"
 	}
+	
+	buildoptions("-std=c++0x -ggdb" )
 	
 project "curveAI"
 	language "C++"
