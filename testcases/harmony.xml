@@ -1,0 +1,540 @@
+<!--
+  Copyright (c) 2009-2015  Glen Berseth, Mubbasir Kapadia, Shawn Singh, Petros Faloutsos, Glenn Reinman
+  See license.txt for complete license.
+--><!--
+  Copyright (c) 2009 Shawn Singh, Mubbasir Kapadia, Petros Faloutsos, Glenn Reinman
+  See license.txt for complete license.
+-->
+
+<SteerBenchTestCase xmlns="http://www.magix.ucla.edu/steerbench"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://www.magix.ucla.edu/steerbench 
+                                        TestCaseSchema.xsd">
+
+  <header>
+    <version>1.0</version>
+    <name>harmony dance</name>
+    <worldBounds>
+      <xmin>-100</xmin>
+      <xmax>100</xmax>
+      <ymin>0</ymin>
+      <ymax>0</ymax>
+      <zmin>-100</zmin>
+      <zmax>100</zmax>
+    </worldBounds>
+  </header>
+  
+  <suggestedCameraView>
+    <position> <x>44</x> <y>30</y> <z>0</z> </position>
+    <lookat> <x>27</x> <y>0</y> <z>0</z> </lookat>
+    <up> <x>0</x> <y>1</y> <z>0</z> </up>
+    <fovy>45</fovy>
+  </suggestedCameraView>
+
+  <suggestedCameraView>
+    <position> <x>104</x> <y>80</y> <z>0</z> </position>
+    <lookat> <x>47</x> <y>0</y> <z>0</z> </lookat>
+    <up> <x>0</x> <y>1</y> <z>0</z> </up>
+    <fovy>45</fovy>
+  </suggestedCameraView>
+
+  
+  <!--  Trigram earth -->
+  <obstacle>
+    <xmin>64</xmin>
+    <xmax>68</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-16</zmin>
+    <zmax>-1</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>64</xmin>
+    <xmax>68</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>1</zmin>
+    <zmax>16</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>70</xmin>
+    <xmax>74</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-16</zmin>
+    <zmax>-1</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>70</xmin>
+    <xmax>74</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>1</zmin>
+    <zmax>16</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>76</xmin>
+    <xmax>80</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-16</zmin>
+    <zmax>-1</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>76</xmin>
+    <xmax>80</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>1</zmin>
+    <zmax>16</zmax>
+  </obstacle>
+  
+  
+  <!--  Trigram sky -->
+  <obstacle>
+    <xmin>-68</xmin>
+    <xmax>-64</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-16</zmin>
+    <zmax>16</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>-74</xmin>
+    <xmax>-70</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-16</zmin>
+    <zmax>16</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>-80</xmin>
+    <xmax>-76</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-16</zmin>
+    <zmax>16</zmax>
+  </obstacle>
+  
+ 
+  
+  
+  
+  <!--  Trigram fire -->
+  <obstacle>
+    <xmin>-16</xmin>
+    <xmax>16</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>64</zmin>
+    <zmax>68</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>-16</xmin>
+    <xmax>-1</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>70</zmin>
+    <zmax>74</zmax>
+  </obstacle>
+  <obstacle>
+    <xmin>1</xmin>
+    <xmax>16</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>70</zmin>
+    <zmax>74</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>-16</xmin>
+    <xmax>16</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>76</zmin>
+    <zmax>80</zmax>
+  </obstacle>
+  
+  
+  
+  <!--  Trigram water -->
+  <obstacle>
+    <xmin>-16</xmin>
+    <xmax>-1</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-68</zmin>
+    <zmax>-64</zmax>
+  </obstacle>
+  <obstacle>
+    <xmin>1</xmin>
+    <xmax>16</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-68</zmin>
+    <zmax>-64</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>-16</xmin>
+    <xmax>16</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-74</zmin>
+    <zmax>-70</zmax>
+  </obstacle>
+ 
+  <obstacle>
+    <xmin>-16</xmin>
+    <xmax>-1</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-80</zmin>
+    <zmax>-76</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>1</xmin>
+    <xmax>16</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-80</zmin>
+    <zmax>-76</zmax>
+  </obstacle>
+  
+  
+  
+  
+  
+  
+
+ 
+ 
+ <!--  I don't know how to draw the remaining ones -->
+
+  <obstacle>
+    <xmin>55</xmin>
+    <xmax>64</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>55</zmin>
+    <zmax>64</zmax>
+  </obstacle>
+
+  <obstacle>
+    <xmin>-64</xmin>
+    <xmax>-55</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>55</zmin>
+    <zmax>64</zmax>
+  </obstacle>
+  
+    <obstacle>
+    <xmin>55</xmin>
+    <xmax>64</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-64</zmin>
+    <zmax>-55</zmax>
+  </obstacle>
+  
+  <obstacle>
+    <xmin>-64</xmin>
+    <xmax>-55</xmax>
+    <ymin>0</ymin>
+    <ymax>1</ymax>
+    <zmin>-64</zmin>
+    <zmax>-55</zmax>
+  </obstacle>
+  
+ 
+  
+
+
+  <agentRegion>
+    <numAgents>100</numAgents>
+    <regionBounds>
+       <xmin>0</xmin>
+      <xmax>99</xmax>
+      <ymin>0</ymin>
+      <ymax>0</ymax>
+      <zmin>-80</zmin>
+      <zmax>80</zmax>
+    </regionBounds>
+    <initialConditions><name>Others</name>
+	<color> <r>0.2</r> <g>0.2</g> <b>0.2</b> </color>
+      <direction> <random>true</random> </direction>
+      <radius>2</radius>
+      <speed>0</speed>
+    </initialConditions>
+    <goalSequence>
+      <seekStaticTarget>
+        <targetLocation> <x>0</x> <y>0</y> <z>0</z> </targetLocation>
+        <desiredSpeed>2</desiredSpeed>
+        <timeDuration>1000.0</timeDuration>
+		<Behaviour>
+			<SteeringAlgorithm>PursueAndEvade</SteeringAlgorithm>
+			<Parameters>
+				<Parameter>
+					<key>pursue</key>
+					<value>White</value>
+				</Parameter>
+				<Parameter>
+					<key>evade</key>
+					<value>Black</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue</key>
+					<value>Harmony</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_force</key>
+					<value>0.02</value>
+				</Parameter>
+				<Parameter>
+					<key>evade_force</key>
+					<value>100</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_evade_force_normalize</key>
+					<value>true</value>
+				</Parameter>
+			</Parameters>
+		</Behaviour>
+      </seekStaticTarget>
+    </goalSequence>
+
+  </agentRegion>
+  
+  <agentRegion>
+    <numAgents>100</numAgents>
+    <regionBounds>
+      <xmin>-99</xmin>
+      <xmax>0</xmax>
+      <ymin>0</ymin>
+      <ymax>0</ymax>
+      <zmin>-80</zmin>
+      <zmax>80</zmax>
+    </regionBounds>
+    <initialConditions><name>Others</name>
+	<color> <r>0.8</r> <g>0.8</g> <b>0.8</b> </color>
+      <direction> <random>true</random> </direction>
+      <radius>2</radius>
+      <speed>0</speed>
+    </initialConditions>
+    <goalSequence>
+      <seekStaticTarget>
+        <targetLocation> <x>0</x> <y>0</y> <z>0</z> </targetLocation>
+        <desiredSpeed>2</desiredSpeed>
+        <timeDuration>1000.0</timeDuration>
+		<Behaviour>
+			<SteeringAlgorithm>PursueAndEvade</SteeringAlgorithm>
+			<Parameters>
+				<Parameter>
+					<key>pursue</key>
+					<value>Black</value>
+				</Parameter>
+				<Parameter>
+					<key>evade</key>
+					<value>White</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue</key>
+					<value>Harmony</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_force</key>
+					<value>0.02</value>
+				</Parameter>
+				<Parameter>
+					<key>evade_force</key>
+					<value>100</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_evade_force_normalize</key>
+					<value>true</value>
+				</Parameter>
+			</Parameters>
+		</Behaviour>
+      </seekStaticTarget>
+    </goalSequence>
+
+  </agentRegion>
+  
+  <agent>
+    <name>Harmony</name>
+    <initialConditions>
+		<color> <r>0.5</r> <g>0.5</g> <b>0.5</b> </color>
+      <radius>5</radius>
+      <position> <x>0</x> <y>0</y> <z>0</z> </position>
+      <direction> <x>0</x> <y>0</y> <z>-1</z> </direction>
+      <speed>0</speed>
+    </initialConditions>
+    <goalSequence>
+      <seekStaticTarget>
+        <targetLocation> <x>0</x> <y>-20</y> <z>0</z> </targetLocation>
+        <desiredSpeed>1</desiredSpeed>
+        <timeDuration>1000.0</timeDuration>
+		
+      </seekStaticTarget>
+    </goalSequence>
+
+  </agent>
+  
+  <agent>
+    <name>White</name>
+    <initialConditions>
+		<color> <r>0.9</r> <g>0.9</g> <b>0.9</b> </color>
+      <radius>4</radius>
+      <position> <x>60</x> <y>0</y> <z>0</z> </position>
+      <direction> <x>0</x> <y>0</y> <z>-1</z> </direction>
+      <speed>0</speed>
+    </initialConditions>
+    <goalSequence>
+      <seekStaticTarget>
+        <targetLocation> <x>0</x> <y>0</y> <z>0</z> </targetLocation>
+        <desiredSpeed>2</desiredSpeed>
+        <timeDuration>1000.0</timeDuration>
+		<Behaviour>
+			<SteeringAlgorithm>PursueAndEvade</SteeringAlgorithm>
+			<Parameters>
+				<Parameter>
+					<key>pursue</key>
+					<value>Black</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue</key>
+					<value>Harmony</value>
+				</Parameter>
+				<Parameter>
+					<key>evade</key>
+					<value>Harmony</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_force</key>
+					<value>500</value>
+				</Parameter>
+				<Parameter>
+					<key>evade_force</key>
+					<value>1000</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_force_exp</key>
+					<value>0</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_evade_force_normalize</key>
+					<value>false</value>
+				</Parameter>
+			</Parameters>
+		</Behaviour>
+      </seekStaticTarget>
+    </goalSequence>
+
+  </agent>
+  
+  <agent>
+    <name>Black</name>
+    <initialConditions>
+	<color> <r>0.1</r> <g>0.1</g> <b>0.1</b> </color>
+      <radius>4</radius>
+      <position> <x>-60</x> <y>0</y> <z>1</z> </position>
+      <direction> <x>0</x> <y>0</y> <z>-1</z> </direction>
+      <speed>0</speed>
+    </initialConditions>
+    <goalSequence>
+      <seekStaticTarget>
+        <targetLocation> <x>0</x> <y>-10</y> <z>0</z> </targetLocation>
+        <desiredSpeed>2</desiredSpeed>
+        <timeDuration>1000.0</timeDuration>
+		<Behaviour>
+			<SteeringAlgorithm>PursueAndEvade</SteeringAlgorithm>
+			<Parameters>
+				<Parameter>
+					<key>pursue</key>
+					<value>Harmony</value>
+				</Parameter>
+				<Parameter>
+					<key>evade</key>
+					<value>Harmony</value>
+				</Parameter>
+				<Parameter>
+					<key>evade</key>
+					<value>White</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_force</key>
+					<value>100</value>
+				</Parameter>
+				<Parameter>
+					<key>evade_force</key>
+					<value>20000</value>
+				</Parameter>
+				<Parameter>
+					<key>evade_force_exp</key>
+					<value>-1</value>
+				</Parameter>
+				<Parameter>
+					<key>pursue_evade_force_normalize</key>
+					<value>false</value>
+				</Parameter>
+			</Parameters>
+		</Behaviour>
+      </seekStaticTarget>
+    </goalSequence>
+
+  </agent>
+  
+    <agentRegion>
+    <numAgents>55</numAgents>
+    <regionBounds>
+      <xmin>-50</xmin>
+      <xmax>50</xmax>
+      <ymin>0</ymin>
+      <ymax>0</ymax>
+      <zmin>-50</zmin>
+      <zmax>50</zmax>
+    </regionBounds>
+    <initialConditions><name>Random</name>
+      <direction> <random>true</random> </direction>
+      <radius>1</radius>
+      <speed>0</speed>
+    </initialConditions>
+    <goalSequence>
+      <seekStaticTarget>
+        <targetLocation> <x>0</x> <y>0</y> <z>0</z> </targetLocation>
+        <desiredSpeed>2</desiredSpeed>
+        <timeDuration>1000.0</timeDuration>
+		<Behaviour>
+			<SteeringAlgorithm>WallFollower</SteeringAlgorithm>
+			<Parameters>
+				<Parameter>
+					<key>direction</key>
+					<value>clockwise</value>
+				</Parameter>
+				<Parameter>
+					<key>following_force</key>
+					<value>100</value>
+				</Parameter>
+				<Parameter>
+					<key>attracting_force</key>
+					<value>100</value>
+				</Parameter>
+			</Parameters>
+		</Behaviour>
+      </seekStaticTarget>
+    </goalSequence>
+  </agentRegion>
+  
+ 
+
+</SteerBenchTestCase>
