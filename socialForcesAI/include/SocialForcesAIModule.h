@@ -48,8 +48,6 @@ public:
 	void cleanupSimulation();
 	void preprocessSimulation();
 	void initializeSimulation();
-    
-    
 	//std::string getDependencies() { return "testCasePlayer"; }
 	std::string getDependencies() { return ""; }
 	

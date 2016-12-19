@@ -5,46 +5,48 @@
 
 
 
-#include "SocialForcesAgent.h"
-#include "SocialForcesAIModule.h"
-#include "SocialForces_Parameters.h"
+#include "IFAgent.h"
+#include "IFAIModule.h"
 // #include <math.h>
 
+#include <vector>
+#include <stack>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <iostream>
+#include <algorithm> 
+#include <functional>
+#include <queue>
+#include <math.h>
 // #include "util/Geometry.h"
 
-/// @file SocialForcesAgent.cpp
-/// @brief Implements the SocialForcesAgent class.
+/// @file IFAgent.cpp
+/// @brief Implements the IFAgent class.
 
 #undef min
 #undef max
 
-#define AGENT_MASS 1.0f
+
 
 using namespace Util;
-using namespace SocialForcesGlobals;
 using namespace SteerLib;
 
 // #define _DEBUG_ENTROPY 1
 
-SocialForcesAgent::SocialForcesAgent()
-{
-	_SocialForcesParams.sf_acceleration = sf_acceleration;
-	_SocialForcesParams.sf_personal_space_threshold = sf_personal_space_threshold;
-	_SocialForcesParams.sf_agent_repulsion_importance = sf_agent_repulsion_importance;
-	_SocialForcesParams.sf_query_radius = sf_query_radius;
-	_SocialForcesParams.sf_body_force = sf_body_force;
-	_SocialForcesParams.sf_agent_body_force = sf_agent_body_force;
-	_SocialForcesParams.sf_sliding_friction_force = sf_sliding_friction_force;
-	_SocialForcesParams.sf_agent_b = sf_agent_b;
-	_SocialForcesParams.sf_agent_a = sf_agent_a;
-	_SocialForcesParams.sf_wall_b = sf_wall_b;
-	_SocialForcesParams.sf_wall_a = sf_wall_a;
-	_SocialForcesParams.sf_max_speed = sf_max_speed;
+std::vector<IFGoal*>  IFAgent::goalList;
+SteerLib::SpatialDataBaseInterface* IFGoal::gSpatialDatabase;
+SteerLib::SpatialDataBaseInterface* IFNode::gSpatialDatabase;
 
+IFField* IFAgent::field;
+
+IFAgent::IFAgent()
+{
+	
 	_enabled = false;
 }
 
-SocialForcesAgent::~SocialForcesAgent()
+IFAgent::~IFAgent()
 {
 	// std::cout << this << " is being deleted" << std::endl;
 	/*
@@ -56,161 +58,17 @@ SocialForcesAgent::~SocialForcesAgent()
 	// std::cout << "Someone is removing an agent " << std::endl;
 }
 
-//begin behaviours
-std::vector<SocialForcesAgent*> SocialForcesAgent::leaders;//defining the leaders storage
-void SocialForcesAgent::updateBehaviours()
+SteerLib::EngineInterface * IFAgent::getSimulationEngine()
 {
-	SteerLib::AgentGoalInfo goalInfo = _goalQueue.front();
-	Behaviour behave=goalInfo.targetBehaviour;std::vector<BehaviourParameter> parameters=behave.getParameters();
-	//pursue and evade
-	std::set<std::string> pursue_agents_name;std::set<std::string> evade_agents_name;
-	if(behave.getSteeringAlg()=="PursueAndEvade")
-	{
-		int q;
-		for (q=0; q < parameters.size(); q++ )
-		{
-			if(parameters.at(q).key=="pursue")
-			{
-				pursue_agents_name.insert(parameters.at(q).value);
-			}
-			if(parameters.at(q).key=="evade")
-			{
-				evade_agents_name.insert(parameters.at(q).value);
-			}
-			if(parameters.at(q).key=="pursue_force")
-			{
-				if(std::stod(parameters.at(q).value)>0)
-				{pursue_force=std::stod(parameters.at(q).value);}
-			}
-			if(parameters.at(q).key=="evade_force")
-			{
-				if(std::stod(parameters.at(q).value)>0)
-				{evade_force=std::stod(parameters.at(q).value);}
-			}
-			if(parameters.at(q).key=="pursue_force_exp")
-			{
-				if((parameters.at(q).value=="INFINITY")||(parameters.at(q).value=="infinity")||(parameters.at(q).value=="INF")){pursue_force_exp=INFINITY;}
-				else if((parameters.at(q).value=="-INFINITY")||(parameters.at(q).value=="-infinity")||(parameters.at(q).value=="-INF")){pursue_force_exp=-INFINITY;}
-				else{pursue_force_exp=std::stod(parameters.at(q).value);}
-			}
-			if(parameters.at(q).key=="evade_force_exp")
-			{
-				if((parameters.at(q).value=="INFINITY")||(parameters.at(q).value=="infinity")||(parameters.at(q).value=="INF")){evade_force_exp=INFINITY;}
-				else if((parameters.at(q).value=="-INFINITY")||(parameters.at(q).value=="-infinity")||(parameters.at(q).value=="-INF")){evade_force_exp=-INFINITY;}
-				else{evade_force_exp=std::stod(parameters.at(q).value);}
-			}
-			if(parameters.at(q).key=="pursue_force_normalize")
-			{
-				if((parameters.at(q).value=="true")||(parameters.at(q).value=="TRUE")||(parameters.at(q).value=="1"))
-				{pursue_force_normalize=true;}
-				if((parameters.at(q).value=="false")||(parameters.at(q).value=="FLASE")||(parameters.at(q).value=="0"))
-				{pursue_force_normalize=false;}
-			}
-			if(parameters.at(q).key=="evade_force_normalize")
-			{
-				if((parameters.at(q).value=="true")||(parameters.at(q).value=="TRUE")||(parameters.at(q).value=="1"))
-				{evade_force_normalize=true;}
-				if((parameters.at(q).value=="false")||(parameters.at(q).value=="FLASE")||(parameters.at(q).value=="0"))
-				{evade_force_normalize=false;}
-			}
-			if(parameters.at(q).key=="pursue_evade_force_normalize")
-			{
-				if((parameters.at(q).value=="true")||(parameters.at(q).value=="TRUE")||(parameters.at(q).value=="1"))
-				{pursue_evade_force_normalize=true;}
-				if((parameters.at(q).value=="false")||(parameters.at(q).value=="FLASE")||(parameters.at(q).value=="0"))
-				{pursue_evade_force_normalize=false;}
-			}
-		}
-		std::vector<SteerLib::AgentInterface*> allagents= getSimulationEngine()->getAgents();
-		pursue_agents.clear();evade_agents.clear();
-		//get references to the target agents from names
-		for (int i=0;i<allagents.size();i++)
-		{
-			SocialForcesAgent* agent=dynamic_cast<SocialForcesAgent*>(allagents[i]);//only supports pursue/evade of other social force agents for now as there's no general interface of inter-agent communication
-			if(agent!=NULL)
-			{
-				if (pursue_agents_name.find(agent->name) != pursue_agents_name.end() )
-				{
-					pursue_agents.push_back(agent);
-				}
-				if (evade_agents_name.find(agent->name) != evade_agents_name.end() )
-				{
-					evade_agents.push_back(agent);
-				}
-			}
-		}
-	}
-	//wall follower
-	//some parameters could cause stasis as goal seeking coflicts with wall following
-	//added some check to disable wall following if the goal is visible; note if the poor agent is pushed away and lost sight of the goal, it will follow walls again
-	//the forces should be large enough to override the goal seeking
-	if(behave.getSteeringAlg()=="WallFollower")
-	{
-		wall_following=true;
-		int q;
-		for (q=0; q < parameters.size(); q++)
-		{
-			if(parameters.at(q).key=="direction")
-			{
-				if(parameters.at(q).value=="clockwise"){clockwise=true;}
-				if(parameters.at(q).value=="counterclockwise"){clockwise=false;}
-			}
-			if(parameters.at(q).key=="following_force")
-			{
-				if(std::stod(parameters.at(q).value)>0)
-				{wall_following_force=std::stod(parameters.at(q).value);}
-				
-				
-			}
-			if(parameters.at(q).key=="attracting_force")
-			{
-				if(std::stod(parameters.at(q).value)>0)
-				{wall_attracting_force=std::stod(parameters.at(q).value);}
-			}
-			
-		}
-	}
-	//leader following
-    if(behave.getSteeringAlg()=="LeaderFollower")
-	{
-		int q;
-		for (q=0; q < parameters.size(); q++)
-		{
-			if(parameters.at(q).key =="role")
-			{
-				if(parameters.at(q).value=="leader")leaders.push_back(this);
-				if(parameters.at(q).value=="follower")leader_following=true;
-			}
-			//it's possible to be both a leader and a follower; effect is kind of like a queueing leader following
-			if(parameters.at(q).key=="follow_visible_leader")
-			{
-				if((parameters.at(q).value=="true")||(parameters.at(q).value=="TRUE")||(parameters.at(q).value=="1"))
-				{follow_visible_leader=true;}
-				if((parameters.at(q).value=="false")||(parameters.at(q).value=="FLASE")||(parameters.at(q).value=="0"))
-				{follow_visible_leader=false;}
-			}
-			if(parameters.at(q).key=="avoiding_leaders_path_force")
-			{
-				if(std::stod(parameters.at(q).value)>0)
-				{avoiding_leaders_path_force=std::stod(parameters.at(q).value);}
-			}
-		}
-	}		
-    //LEADER FOLLOWING: end
-}
-//end behaviours
-
-SteerLib::EngineInterface * SocialForcesAgent::getSimulationEngine()
-{
-	return _gEngine;
+	return gEngine;
 }
 
-void SocialForcesAgent::setParameters(Behaviour behave)
+void IFAgent::setParameters(Behaviour behave)
 {
-	this->_SocialForcesParams.setParameters(behave);
+	this->setParameters(behave);
 }
 
-void SocialForcesAgent::disable()
+void IFAgent::disable()
 {
 	// DO nothing for now
 	// if we tried to disable a second time, most likely we accidentally ignored that it was disabled, and should catch that error.
@@ -228,21 +86,31 @@ void SocialForcesAgent::disable()
 
 }
 
-void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo)
+void IFAgent::reset(const SteerLib::AgentInitialConditions & initialConditions, SteerLib::EngineInterface * engineInfo)
 {
-	static bool randomized=false;static unsigned int ran;
-	//begin Behaviour: pursue and evade - need to set the name of the agent so another agent can query it later
-	name=initialConditions.name;
-	//end behaviour: pursue and evade
 	// compute the "old" bounding box of the agent before it is reset.  its OK that it will be invalid if the agent was previously disabled
 	// because the value is not used in that case.
 	// std::cout << "resetting agent " << this << std::endl;
 	_waypoints.clear();
 	_midTermPath.clear();
 
+	sf_acceleration = gModule->sf_acceleration;
+	sf_personal_space_threshold = gModule->sf_personal_space_threshold;
+	sf_agent_repulsion_importance = gModule->sf_agent_repulsion_importance;
+	sf_query_radius =gModule-> sf_query_radius;
+	sf_body_force =gModule-> sf_body_force;
+	sf_agent_body_force = gModule->sf_agent_body_force;
+	sf_sliding_friction_force =gModule-> sf_sliding_friction_force;
+	sf_agent_b = gModule->sf_agent_b;
+	sf_agent_a = gModule->sf_agent_a;
+	sf_wall_b = gModule->sf_wall_b;
+	sf_wall_a =gModule-> sf_wall_a;
+	sf_max_speed =gModule-> sf_max_speed;
+	maxWeight =gModule-> maxWeight;
+	useLeader=gModule->useLeader;
 	Util::AxisAlignedBox oldBounds(_position.x-_radius, _position.x+_radius, 0.0f, 0.5f, _position.z-_radius, _position.z+_radius);
 
-	
+
 	// initialize the agent based on the initial conditions
 	/*
 	position_ = Vector2(initialConditions.position.x, initialConditions.position.z);
@@ -256,22 +124,13 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 	_radius = initialConditions.radius;
 	_velocity = initialConditions.speed * _forward;
 	// std::cout << "inital colour of agent " << initialConditions.color << std::endl;
-	
-	// Find random agent color - to make non-foreground agents look more interesting
-	if (initialConditions.colorSet)
-		_color = initialConditions.color;
+	if ( initialConditions.colorSet == true )
+	{
+		this->_color = initialConditions.color;
+	}
 	else
 	{
-		if(randomized){ran=(ran*ran)%1001;}else{ran=time(NULL);randomized=true;}//random is not working?? so use a fake random number
-		float r, g, b;
-		r = (float)(ran % 5) / 3.0f;
-		g = (float)(ran % 7) / 5.0f;
-		b = (float)(ran % 11) / 7.0f;
-		_color = Util::Color(r, g, b);
-		//std::random_device seed;
-		//std::default_random_engine generator(seed());
-		//std::uniform_real_distribution<float> distribution(0.0f, 0.8f);
-		//agentColor = Util::Color(distribution(generator), distribution(generator), distribution(generator));
+		this->_color = Util::gBlue;
 	}
 
 	// compute the "new" bounding box of the agent
@@ -323,21 +182,44 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 			}
 		}
 		else {
-			//throw Util::GenericException("Unsupported goal type; SocialForcesAgent only supports GOAL_TYPE_SEEK_STATIC_TARGET and GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL.");
+			throw Util::GenericException("Unsupported goal type; IFAgent only supports GOAL_TYPE_SEEK_STATIC_TARGET and GOAL_TYPE_AXIS_ALIGNED_BOX_GOAL.");
 		}
 	}
 
-	runLongTermPlanning(_goalQueue.front().targetLocation, dont_plan);
+	computePath(_goalQueue.front().targetLocation, dont_plan);
 
 	// std::cout << "first waypoint: " << _waypoints.front() << " agents position: " << position() << std::endl;
 	/*
 	 * Must make sure that _waypoints.front() != position(). If they are equal the agent will crash.
 	 * And that _waypoints is not empty
 	 */
-	Util::Vector goalDirection;
+	 
+	lastProgressPoint=position();//my way of detecting getting stuck
+	//goalDirection is now saved for later
 	if ( !_midTermPath.empty() )
 	{
-		this->updateLocalTarget();
+		//my updateLocalTarget
+		Util::Point tmpTarget = this->_midTermPath.at(0);
+		// std::cout << "Size of mid term path: " << this->_midTermPath.size() << std::endl;
+		int i=0;
+		for (i=0; (i < FURTHEST_LOCAL_TARGET_DISTANCE) &&
+				i < this->_midTermPath.size(); i++ )
+		{
+			tmpTarget = this->_midTermPath.at(i);
+			if ( this->hasLineOfSightTo(tmpTarget) )
+			{
+				this->_currentLocalTarget = tmpTarget;
+
+			}
+			else
+			{ // test for RVO2D
+				break;
+			}
+		}
+		for (int j=0; (j < (i-1)) && (i > 2) && (this->_midTermPath.size() > 1 ); j++)
+		{// remove points behind where the agent can see
+			this->_midTermPath.pop_front();
+		}
 		goalDirection = normalize( this->_currentLocalTarget - position());
 	}
 	else
@@ -350,12 +232,12 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 				(
 					(
 						Util::Vector(goalDirection.x, 0.0f, goalDirection.z) *
-						PERFERED_SPEED
+						sf_preferred_speed
 					)
 				- velocity()
 				)
 				/
-				_SocialForcesParams.sf_acceleration
+				sf_acceleration
 			)
 			*
 			MASS;
@@ -375,7 +257,7 @@ void SocialForcesAgent::reset(const SteerLib::AgentInitialConditions & initialCo
 }
 
 
-void SocialForcesAgent::calcNextStep(float dt)
+void IFAgent::calcNextStep(float dt)
 {
 
 }
@@ -403,17 +285,17 @@ std::pair<float, Util::Point> minimum_distance(Util::Point l1, Util::Point l2, U
 }
 
 
-Util::Vector SocialForcesAgent::calcProximityForce(float dt)
+Util::Vector IFAgent::calcProximityForce(float dt)
 {
 	std::set<SteerLib::SpatialDatabaseItemPtr> _neighbors;
 		getSimulationEngine()->getSpatialDatabase()->getItemsInRange(_neighbors,
-				_position.x-(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.x+(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.z-(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.z+(this->_radius + _SocialForcesParams.sf_query_radius),
+				_position.x-(this->_radius + sf_query_radius),
+				_position.x+(this->_radius + sf_query_radius),
+				_position.z-(this->_radius + sf_query_radius),
+				_position.z+(this->_radius + sf_query_radius),
 				dynamic_cast<SteerLib::SpatialDatabaseItemPtr>(this));
 
-	SteerLib::AgentInterface * tmp_agent;
+	IFAgent * tmp_agent;
 	SteerLib::ObstacleInterface * tmp_ob;
 	Util::Vector away = Util::Vector(0,0,0);
 	Util::Vector away_obs = Util::Vector(0,0,0);
@@ -423,23 +305,37 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 	{
 		if ( (*neighbour)->isAgent() )
 		{
-			tmp_agent = dynamic_cast<SteerLib::AgentInterface *>(*neighbour);
-			if(tmp_agent->radius()<radius())continue;//ignore smaller agents
+			tmp_agent = dynamic_cast<IFAgent *>(*neighbour);
+
 			// direction away from other agent
 			Util::Vector away_tmp = normalize(position() - tmp_agent->position());
 			// std::cout << "away_agent_tmp vec" << away_tmp << std::endl;
 			// Scale force
 			// std::cout << "the exp of agent distance is " << exp((radius() + tmp_agent->radius()) -
 				//	(position() - tmp_agent->position()).length()) << std::endl;
-
-
+			double factor=1;if(tmp_agent->weight>weight){factor=MIN(tmp_agent->weight/weight,10);}else{factor=tmp_agent->weight/weight;}
+		
+			//a high-weight agent should repel others, but attract people that have a similar intended direction that are behind the leader
+			//and an agent following a high weight leader should increase in weight to make it less likely for the line to be broken
+			double cos1=goalDirection*tmp_agent->goalDirection;
+			double cos2=tmp_agent->goalDirection*(-away);
+			
+			away+=away_tmp*(- MIN(cos1,cos2))*0.02*factor;
+			if(MIN(cos1,cos2)>0){weight=MIN(weight+(MIN(cos1,cos2)*0.01*tmp_agent->weight),maxWeight);}
+			//add a force to make an agent go slightly to the right when about to run into someone
+			
+			double d=(this->position()-tmp_agent->position()).length();Util::Vector v=(tmp_agent->position()-this->position());
+			double x=((this->radius()*2+tmp_agent->radius()+sf_personal_space_threshold)-d)/d;//a bigger area of avoidance?
+			double my=(goalDirection*v)/d;//if you are going against someone you should deflect to the right
+			if((my>0)&&(x>0)){away+=rightSideInXZPlane(v)*my*x;}
+			
 			// away = away + (away_tmp * ( radius() / ((position() - tmp_agent->position()).length() * B) ));
 			away = away +
 					(
-						away_tmp
+						away_tmp//removed factor;
 						*
 						(
-							_SocialForcesParams.sf_agent_a
+							sf_agent_a
 							*
 							exp(
 								(
@@ -447,7 +343,7 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 										(
 											this->radius()
 											+
-											tmp_agent->radius()+_SocialForcesParams.sf_personal_space_threshold
+											tmp_agent->radius()+sf_personal_space_threshold
 										)
 										-
 										(
@@ -457,7 +353,7 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 										).length()
 									)
 									/
-									_SocialForcesParams.sf_agent_b
+									sf_agent_b
 								)
 							)
 
@@ -484,7 +380,7 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 									).length()
 								)
 								/
-								_SocialForcesParams.sf_agent_b
+								sf_agent_b
 							)
 						) << std::endl;
 						*/
@@ -503,13 +399,13 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 							away_tmp
 							*
 							(
-									_SocialForcesParams.sf_wall_a
+									sf_wall_a
 								*
 								exp(
 									(
 										(
 											(
-												this->radius()+_SocialForcesParams.sf_personal_space_threshold
+												this->radius()
 												+
 												obs_cir->radius()
 											)
@@ -521,7 +417,7 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 											).length()
 										)
 										/
-										_SocialForcesParams.sf_wall_b
+										sf_wall_b
 									)
 								)
 
@@ -548,12 +444,12 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 							away_obs_tmp
 							*
 							(
-								_SocialForcesParams.sf_wall_a
+								sf_wall_a
 								*
 								exp(
 									(
 										(
-											(this->radius()) -
+											(this->radius()+sf_personal_space_threshold) -
 											(
 												this->position()
 												-
@@ -561,7 +457,7 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 											).length()
 										)
 										/
-										_SocialForcesParams.sf_wall_b
+										sf_wall_b
 									)
 								)
 							)
@@ -575,49 +471,49 @@ Util::Vector SocialForcesAgent::calcProximityForce(float dt)
 	return away + away_obs;
 }
 
-Util::Vector SocialForcesAgent::calcRepulsionForce(float dt)
+Util::Vector IFAgent::calcRepulsionForce(float dt)
 {
 #ifdef _DEBUG_
 	std::cout << "wall repulsion; " << calcWallRepulsionForce(dt) << " agent repulsion " <<
-			(_SocialForcesParams.sf_agent_repulsion_importance * calcAgentRepulsionForce(dt)) << std::endl;
+			(sf_agent_repulsion_importance * calcAgentRepulsionForce(dt)) << std::endl;
 #endif
-	return calcWallRepulsionForce(dt) + (_SocialForcesParams.sf_agent_repulsion_importance * calcAgentRepulsionForce(dt));
+	return calcWallRepulsionForce(dt) + (sf_agent_repulsion_importance * calcAgentRepulsionForce(dt));
 }
 
-Util::Vector SocialForcesAgent::calcAgentRepulsionForce(float dt)
+Util::Vector IFAgent::calcAgentRepulsionForce(float dt)
 {
 
 	Util::Vector agent_repulsion_force = Util::Vector(0,0,0);
 
 	std::set<SteerLib::SpatialDatabaseItemPtr> _neighbors;
 		getSimulationEngine()->getSpatialDatabase()->getItemsInRange(_neighbors,
-				_position.x-(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.x+(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.z-(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.z+(this->_radius + _SocialForcesParams.sf_query_radius),
+				_position.x-(this->_radius + sf_query_radius),
+				_position.x+(this->_radius + sf_query_radius),
+				_position.z-(this->_radius + sf_query_radius),
+				_position.z+(this->_radius + sf_query_radius),
 				(this));
 
-	SteerLib::AgentInterface * tmp_agent;
+	IFAgent * tmp_agent;
 
 	for (std::set<SteerLib::SpatialDatabaseItemPtr>::iterator neighbour = _neighbors.begin();  neighbour != _neighbors.end();  neighbour++)
 	// for (int a =0; a < tmp_agents.size(); a++)
 	{
 		if ( (*neighbour)->isAgent() )
 		{
-			tmp_agent = dynamic_cast<SteerLib::AgentInterface *>(*neighbour);
+			tmp_agent = dynamic_cast<IFAgent *>(*neighbour);
 		}
 		else
 		{
 			continue;
 		}
-		if(tmp_agent->radius()<radius())continue;//ignore smaller agents
 		if ( ( id() != tmp_agent->id() ) &&
 				(tmp_agent->computePenetration(this->position(), this->radius()) > 0.000001)
 			)
 		{
+			double factor=1;if(tmp_agent->weight>weight){factor=MIN(tmp_agent->weight/weight,10);}else{if(weight>=2*tmp_agent->weight)factor=0;else{factor=tmp_agent->weight/weight;} }
 		agent_repulsion_force = agent_repulsion_force +
-			( tmp_agent->computePenetration(this->position(), this->radius()) * _SocialForcesParams.sf_agent_body_force * dt) *
-			normalize(position() - tmp_agent->position());
+			( tmp_agent->computePenetration(this->position(), this->radius()) * sf_agent_body_force * dt) *
+			normalize(position() - tmp_agent->position());//removed factor
 			// normalized tangential force
 		/*
 			agent_repulsion_force = agent_repulsion_force +
@@ -640,107 +536,30 @@ Util::Vector SocialForcesAgent::calcAgentRepulsionForce(float dt)
 			// std::cout << "Velocity diff is " << tanget_v_diff << " tangent is " << tangent <<
 				//	" velocity is " << velocity() << std::endl;
 			agent_repulsion_force = agent_repulsion_force +
-			(_SocialForcesParams.sf_sliding_friction_force * dt *
+			(sf_sliding_friction_force * dt *
 				(
 					tmp_agent->computePenetration(this->position(), this->radius())
-				) * tangent * tanget_v_diff
+				) * tangent * tanget_v_diff //removed factor
 
 			);
 		}
 
 	}
-	//begin behaviour pursue and evade: add strong positive and negative forces towards target agents
-	//note: we pursue the closest visible pursued agent only, as is logical
-	Util::Vector pursueVector;int pursuenumber=0;float closestPursueDistance=INFINITY;float farthestPursueDistance=0;
-	Util::Vector evadeVector;int evadenumber=0;float closestEvadeDistance=INFINITY;float farthestEvadeDistance=0;
-	if(pursue_force_exp==INFINITY)//force is proportional to the distance raised to a power; if the exp is infinity it means only the farthest counts, and if it's -infinity only the closest counts; since we can't normalize an infinite or infinisimal vector, treat these as special cases
-	{
-		for(unsigned int i=0;i<pursue_agents.size();i++)
-		{
-			if (pursue_agents[i]->enabled()==false)continue;if(pursue_agents[i]==this)continue;
-			if((pursue_agents[i]->position()-_position).length()<closestPursueDistance)
-			{
-				closestPursueDistance=(pursue_agents[i]->position()-_position).length();
-				pursueVector=pursue_agents[i]->position()-_position;pursuenumber=1;
-			}
-		}
-	}
-	else if(pursue_force_exp==-INFINITY)
-	{
-		for(unsigned int i=0;i<pursue_agents.size();i++)
-		{
-			if (pursue_agents[i]->enabled()==false)continue;if(pursue_agents[i]==this)continue;
-			if((pursue_agents[i]->position()-_position).length()>farthestPursueDistance)
-			{
-				farthestPursueDistance=(pursue_agents[i]->position()-_position).length();
-				pursueVector=pursue_agents[i]->position()-_position;pursuenumber=1;
-			}
-		}
-	}
-	else
-	{
-		for(int i=0;i<pursue_agents.size();i++)
-		{
-			if (pursue_agents[i]->enabled()==false)continue;if(pursue_agents[i]==this)continue;float temppow=pow((pursue_agents[i]->position()-_position).length(),pursue_force_exp);
-			temppow=temppow < std::numeric_limits<float>::min() ? std::numeric_limits<float>::min() : (temppow > std::numeric_limits<float>::max() ? std::numeric_limits<float>::max() : temppow);
-			pursueVector+=temppow*normalize(pursue_agents[i]->position()-_position)*pursue_force*dt;//length raised to a power to control the weight of near/far targets; 0 treats targets equally, -1 prefers near ones and 1 prefers far ones etc
-			pursuenumber++;
-		}
-	}
-	if((pursuenumber>0)&&(pursue_force_normalize)){pursueVector=normalize(pursueVector);}
-	//evade
-	if(evade_force_exp==INFINITY)//force is proportional to the distance raised to a power; if the exp is infinity it means only the farthest counts, and if it's -infinity only the closest counts; since we can't normalize an infinite or infinisimal vector, treat these as special cases
-	{
-		for(int i=0;i<evade_agents.size();i++)
-		{
-			if (evade_agents[i]->enabled()==false)continue;if(evade_agents[i]==this)continue;
-			if((_position-evade_agents[i]->position()).length()<closestEvadeDistance)
-			{
-				closestEvadeDistance=(_position-evade_agents[i]->position()).length();
-				evadeVector=_position-evade_agents[i]->position();evadenumber=1;
-			}
-		}
-	}
-	else if(evade_force_exp==-INFINITY)
-	{
-		for(int i=0;i<evade_agents.size();i++)
-		{
-			if (evade_agents[i]->enabled()==false)continue;if(evade_agents[i]==this)continue;
-			if((_position-evade_agents[i]->position()).length()>farthestEvadeDistance)
-			{
-				farthestEvadeDistance=(_position-evade_agents[i]->position()).length();
-				evadeVector=_position-evade_agents[i]->position();evadenumber=1;
-			}
-		}
-	}
-	else
-	{
-		for(int i=0;i<evade_agents.size();i++)
-		{
-			if (evade_agents[i]->enabled()==false)continue;if(evade_agents[i]==this)continue;float temppow=pow((_position-evade_agents[i]->position()).length(),evade_force_exp);
-			temppow=temppow < std::numeric_limits<float>::min() ? std::numeric_limits<float>::min() : (temppow > std::numeric_limits<float>::max() ? std::numeric_limits<float>::max() : temppow);
-			evadeVector+=temppow*normalize(_position-evade_agents[i]->position())*evade_force*dt;//length raised to a power to control the weight of near/far targets; 0 treats targets equally, -1 prefers near ones and 1 prefers far ones etc
-			evadenumber++;
-		}
-	}
-	if((evadenumber>0)&&(evade_force_normalize)){evadeVector=normalize(evadeVector);}
-	
-	if((pursue_evade_force_normalize)&&(pursuenumber+evadenumber>0)){agent_repulsion_force+=normalize(pursueVector+evadeVector);}else{agent_repulsion_force+=pursueVector+evadeVector;}
-	//end behaviour
-
 	return agent_repulsion_force;
 }
 
-Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
+Util::Vector IFAgent::calcWallRepulsionForce(float dt)
 {
+
 	Util::Vector wall_repulsion_force = Util::Vector(0,0,0);
-	
+
+
 	std::set<SteerLib::SpatialDatabaseItemPtr> _neighbors;
 		getSimulationEngine()->getSpatialDatabase()->getItemsInRange(_neighbors,
-				_position.x-(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.x+(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.z-(this->_radius + _SocialForcesParams.sf_query_radius),
-				_position.z+(this->_radius + _SocialForcesParams.sf_query_radius),
+				_position.x-(this->_radius + sf_query_radius),
+				_position.x+(this->_radius + sf_query_radius),
+				_position.z-(this->_radius + sf_query_radius),
+				_position.z+(this->_radius + sf_query_radius),
 				dynamic_cast<SteerLib::SpatialDatabaseItemPtr>(this));
 
 	SteerLib::ObstacleInterface * tmp_ob;
@@ -756,17 +575,15 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 		{
 			continue;
 		}
-		
-		if (tmp_ob->computePenetration(this->position(), this->radius()) > 0.000001 )
+		if ( tmp_ob->computePenetration(this->position(), this->radius()) > 0.000001 )
 		{
-			Util::Vector wall_normal;float distance;
 			CircleObstacle * cir_obs = dynamic_cast<SteerLib::CircleObstacle *>(tmp_ob);
 			if ( cir_obs != NULL && USE_CIRCLES )
 			{
 				// std::cout << "Intersected circle obstacle" << std::endl;
-				 wall_normal= position() - cir_obs->position();
+				Util::Vector wall_normal = position() - cir_obs->position();
 				// wall distance
-				 distance= wall_normal.length() - cir_obs->radius();
+				float distance = wall_normal.length() - cir_obs->radius();
 
 				wall_normal = normalize(wall_normal);
 				wall_repulsion_force = wall_repulsion_force +
@@ -778,7 +595,7 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 							*
 							(
 								radius() +
-								_SocialForcesParams.sf_personal_space_threshold -
+								sf_personal_space_threshold -
 								(
 									distance
 								)
@@ -786,7 +603,7 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 						)
 						/
 						distance
-					)* _SocialForcesParams.sf_body_force * dt);
+					)* sf_body_force * dt);
 
 				// tangential force
 				// std::cout << "wall tangent " << rightSideInXZPlane(wall_normal) <<
@@ -799,18 +616,16 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 					rightSideInXZPlane(wall_normal)
 					*
 					cir_obs->computePenetration(this->position(), this->radius())
-				)* _SocialForcesParams.sf_sliding_friction_force * dt;
+				)* sf_sliding_friction_force * dt;
 
 			}
 			else
 			{
-				Util::Vector wall_normal;float distance;
-				wall_normal = calcWallNormal( tmp_ob );
+				Util::Vector wall_normal = calcWallNormal( tmp_ob );
 				std::pair<Util::Point,Util::Point> line = calcWallPointsFromNormal(tmp_ob, wall_normal);
 				// Util::Point midpoint = Util::Point((line.first.x+line.second.x)/2, ((line.first.y+line.second.y)/2)+1,
 					// 	(line.first.z+line.second.z)/2);
 				std::pair<float, Util::Point> min_stuff = minimum_distance(line.first, line.second, position());
-				distance=min_stuff.first;
 				// wall distance
 				wall_repulsion_force = wall_repulsion_force +
 					((
@@ -821,7 +636,7 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 							*
 							(
 								radius() +
-								_SocialForcesParams.sf_personal_space_threshold -
+								sf_personal_space_threshold -
 								(
 									min_stuff.first
 								)
@@ -829,7 +644,7 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 						)
 						/
 						min_stuff.first
-					)* _SocialForcesParams.sf_body_force * dt);
+					)* sf_body_force * dt);
 				// tangential force
 				// std::cout << "wall tangent " << rightSideInXZPlane(wall_normal) <<
 					// 	" dot is " << dot(forward(),  rightSideInXZPlane(wall_normal)) <<
@@ -841,62 +656,15 @@ Util::Vector SocialForcesAgent::calcWallRepulsionForce(float dt)
 					rightSideInXZPlane(wall_normal)
 					*
 					tmp_ob->computePenetration(this->position(), this->radius())
-				)* _SocialForcesParams.sf_sliding_friction_force * dt;
+				)* sf_sliding_friction_force * dt;
 			}
 		}
-		//begin behaviour wallfollower: follow walls to solve maze
-		else if(wall_following)
-		{
-			SteerLib::AgentGoalInfo goalInfo=_goalQueue.front();
-			//if(this->hasLineOfSightTo(goalInfo.targetLocation)){continue;}//disable wall folowing if the goal is visible
-			
-			//wall following when not rubbing against walls, to prevent unrealistic sliding
-			Util::Vector wall_normal;float distance;
-			CircleObstacle * cir_obs = dynamic_cast<SteerLib::CircleObstacle *>(tmp_ob);
-			if ( cir_obs != NULL && USE_CIRCLES )
-			{
-				// std::cout << "Intersected circle obstacle" << std::endl;
-				 wall_normal= position() - cir_obs->position();
-				// wall distance
-				 distance= wall_normal.length() - cir_obs->radius();
-			}
-			else
-			{
-				wall_normal = calcWallNormal( tmp_ob );
-				std::pair<Util::Point,Util::Point> line = calcWallPointsFromNormal(tmp_ob, wall_normal);
-				// Util::Point midpoint = Util::Point((line.first.x+line.second.x)/2, ((line.first.y+line.second.y)/2)+1,
-					// 	(line.first.z+line.second.z)/2);
-				std::pair<float, Util::Point> min_stuff = minimum_distance(line.first, line.second, position());
-				distance=min_stuff.first;
-			}
-			//force to attract the agent to get closer to the wall
-			wall_repulsion_force = wall_repulsion_force +
-					((
-						(
-							(
-									wall_normal
-							)
-							*
-							(
-								
-								((radius()+_SocialForcesParams.sf_personal_space_threshold)-distance)
-								//note that it's radius - distance not the reverse , because the distance is more than radius and we want to attract the agent - wall normal repels it
-																
-							)
-						)
-					) * wall_attracting_force*dt);
-			
-			wall_repulsion_force = wall_repulsion_force +
-			rightSideInXZPlane(wall_normal)*(clockwise?1:-1) *(wall_following_force/(distance-radius()))* dt;//note: disregard forward, because this is not the same as a tangential reverse-friction, the direction should be consistent, or any collision - say with a wall at a right angle - could cause the agent to reverse its forward direction, wasting all the wall following effort.
-			//try dividing by distance to follow closer walls more
-		}
-		//end behaviour wall follower
 
 	}
 	return wall_repulsion_force;
 }
 
-std::pair<Util::Point, Util::Point> SocialForcesAgent::calcWallPointsFromNormal(SteerLib::ObstacleInterface* obs, Util::Vector normal)
+std::pair<Util::Point, Util::Point> IFAgent::calcWallPointsFromNormal(SteerLib::ObstacleInterface* obs, Util::Vector normal)
 {
 	Util::AxisAlignedBox box = obs->getBounds();
 	if ( normal.z == 1)
@@ -937,7 +705,7 @@ std::pair<Util::Point, Util::Point> SocialForcesAgent::calcWallPointsFromNormal(
  *
  *
  */
-Util::Vector SocialForcesAgent::calcWallNormal(SteerLib::ObstacleInterface* obs)
+Util::Vector IFAgent::calcWallNormal(SteerLib::ObstacleInterface* obs)
 {
 	Util::AxisAlignedBox box = obs->getBounds();
 	if ( position().x > box.xmax )
@@ -1028,7 +796,7 @@ Util::Vector SocialForcesAgent::calcWallNormal(SteerLib::ObstacleInterface* obs)
 /**
  * Treats Obstacles as a circle and calculates normal
  */
-Util::Vector SocialForcesAgent::calcObsNormal(SteerLib::ObstacleInterface* obs)
+Util::Vector IFAgent::calcObsNormal(SteerLib::ObstacleInterface* obs)
 {
 	Util::AxisAlignedBox box = obs->getBounds();
 	Util::Point obs_centre = Util::Point((box.xmax+box.xmin)/2, (box.ymax+box.ymin)/2,
@@ -1037,92 +805,169 @@ Util::Vector SocialForcesAgent::calcObsNormal(SteerLib::ObstacleInterface* obs)
 }
 
 /*
-void SocialForcesAgent::computeNeighbors()
+void IFAgent::computeNeighbors()
 {
 	agentNeighbors_.clear();
 
-	if (_SocialForcesParams.rvo_max_neighbors > 0) {
+	if (rvo_max_neighbors > 0) {
 		// std::cout << "About to segfault" << std::endl;
-		dynamic_cast<SocialForcesAIModule *>(rvoModule)->kdTree_->computeAgentNeighbors(this, _SocialForcesParams.rvo_neighbor_distance * _SocialForcesParams.rvo_neighbor_distance);
+		dynamic_cast<IFAIModule *>(rvoModule)->kdTree_->computeAgentNeighbors(this, rvo_neighbor_distance * rvo_neighbor_distance);
 		// std::cout << "Made it past segfault" << std::endl;
 	}
 }*/
 
 
-void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNumber)
+//using computePath instead of runLongtermPlanning.
+
+bool IFAgent::computePath(Util::Point goal, bool dontplan)
 {
-	// std::cout << "_SocialForcesParams.rvo_max_speed " << _SocialForcesParams.rvo_max_speed << std::endl;
-	Util::AutomaticFunctionProfiler profileThisFunction( &SocialForcesGlobals::gPhaseProfilers->aiProfiler );
+	static int count=0;
+	count++;
+	if(count%100==0){std::cout << "path computed: "<<count <<"times" <<std::endl;}
+	//clamp goal to avoid edge
+	if(goal.x<=gSpatialDatabase->getOriginX())goal.x=gSpatialDatabase->getOriginX()+0.01f;
+	if(goal.z<=gSpatialDatabase->getOriginZ())goal.z=gSpatialDatabase->getOriginZ()+0.01f;
+	if(goal.x>=gSpatialDatabase->getOriginX()+gSpatialDatabase->getGridSizeX())goal.x=gSpatialDatabase->getOriginX()+gSpatialDatabase->getGridSizeX()-0.01f;
+	if(goal.z>=gSpatialDatabase->getOriginZ()+gSpatialDatabase->getGridSizeZ())goal.z=gSpatialDatabase->getOriginZ()+gSpatialDatabase->getGridSizeZ()-0.01f;
+	//if goal in goalList
+	int id = gSpatialDatabase->getCellIndexFromLocation(goal);
+	myGoal=NULL;
+	//setup tolerance checking and check if your goal is actually visible from the approximate goal?
+	//first let's check just how bad it is to sort the open set for each agent every time wee need to replan, versus doing a Dijkstra for each agent at the start?
+	for(unsigned int i = 0; i<goalList.size(); i++)
+	{
+			if(goalList[i]->goalID==id){myGoal=goalList[i]; break;}
+			
+			else if((goalList[i]->goal-goal).length()<10.0f)//tolerance
+			{
+				//code modified from hasLineOfSight
+				float dummyt;
+				Util::Vector toAnotherGoal = goalList[i]->goal-goal;
+				SpatialDatabaseItemPtr dummyObject;
+				Ray lineOfSightTest;
+				Util::Point tmp_pos=goal;
+				lineOfSightTest.initWithLengthInterval(tmp_pos, toAnotherGoal);
+				if(gSpatialDatabase->trace(lineOfSightTest,dummyt, dummyObject, NULL,true)==false) {myGoal=goalList[i];break;}//not blocked
+			}
+	}
+	//else create it first
+	
+	if(myGoal==NULL)
+	{
+		myGoal=new IFGoal(id);goalList.push_back(myGoal);  
+		std::cout << "creating new goal #"<<goalList.size() << "at" << goalList[goalList.size()-1]->goal << std::endl;
+	}
+	Util::Point pos=position();
+	if(pos.x<=gSpatialDatabase->getOriginX())pos.x=gSpatialDatabase->getOriginX()+0.01f;
+	if(pos.z<=gSpatialDatabase->getOriginZ())pos.z=gSpatialDatabase->getOriginZ()+0.01f;
+	if(pos.x>=gSpatialDatabase->getOriginX()+gSpatialDatabase->getGridSizeX())pos.x=gSpatialDatabase->getOriginX()+gSpatialDatabase->getGridSizeX()-0.01f;
+	if(pos.z>=gSpatialDatabase->getOriginZ()+gSpatialDatabase->getGridSizeZ())pos.z=gSpatialDatabase->getOriginZ()+gSpatialDatabase->getGridSizeZ()-0.01f;
+	bool success=myGoal->computePath(pos,path,this);
+	if(!success) return false;//should go to a closest place instead?
+	_midTermPath.clear();_waypoints.clear();
+	for(int i=1; i <  path.size(); i++)
+	{
+		_midTermPath.push_back(path.at(i));
+		if ((i % FURTHEST_LOCAL_TARGET_DISTANCE) == 0)
+		{
+			_waypoints.push_back(path.at(i));
+		}
+	}
+	_waypoints.push_back(goal);
+	return true;
+}
+
+
+void IFAgent::updateAI(float timeStamp, float dt, unsigned int frameNumber)
+{
+	// std::cout << "rvo_max_speed " << rvo_max_speed << std::endl;
+	Util::AutomaticFunctionProfiler profileThisFunction( &(dynamic_cast<IFAIModule *>(gModule)->gPhaseProfilers->aiProfiler) );
 	if (!enabled())
 	{
 		return;
 	}
 
-	//begin behaviours
-	if(should_update_behaviours)updateBehaviours();//note, disabled agents don't update because they are not in the spatial database so should not matter
-	//end behaviours
 	Util::AxisAlignedBox oldBounds(_position.x - _radius, _position.x + _radius, 0.0f, 0.0f, _position.z - _radius, _position.z + _radius);
 
 	SteerLib::AgentGoalInfo goalInfo = _goalQueue.front();
 	
-	Util::Vector goalDirection;
 	// std::cout << "midtermpath empty: " << _midTermPath.empty() << std::endl;
-	if ( ! _midTermPath.empty() && (!this->hasLineOfSightTo(goalInfo.targetLocation)) )
+	//Some agents seem trapped when their next local target was seen but is not visible and they could get stuck, so maybe replan when local target is not visible?
+	
+	if (!_midTermPath.empty() && framesWithoutProgress> 10)
+	{
+		framesWithoutProgress=0;computePath(_goalQueue.front().targetLocation, false);
+	}
+	if (!_midTermPath.empty() && !this->hasLineOfSightTo(_currentLocalTarget))
+	{
+		replan_wait++;
+		if((replan_wait>10)||replan){replan_wait=0;replan=false;computePath(_goalQueue.front().targetLocation, false);}
+	}
+
+	bool goalVisible=this->hasLineOfSightTo(goalInfo.targetLocation);
+	if ( ! _midTermPath.empty() && (!goalVisible) )
 	{
 		if (reachedCurrentWaypoint())
 		{
 			this->updateMidTermPath();
 		}
+		// my own updateLocalTarget
+		Util::Point tmpTarget = this->_midTermPath.at(0);
+		// std::cout << "Size of mid term path: " << this->_midTermPath.size() << std::endl;
+		int i=0;
+		for (i=0; (i < FURTHEST_LOCAL_TARGET_DISTANCE) &&
+				i < this->_midTermPath.size(); i++ )
+		{
+			tmpTarget = this->_midTermPath.at(i);
+			if ( this->hasLineOfSightTo(tmpTarget) )
+			{
+				this->_currentLocalTarget = tmpTarget;
 
-		this->updateLocalTarget();
-
+			}
+			else
+			{ // test for RVO2D
+				break;
+			}
+		}
+		// std::cout << "Can see to midTermPath point: " << i << std::endl;
+		// This makes SF TOO GOOD
+		for (int j=0; (j < (i-1)) && (i > 2) && (this->_midTermPath.size() > 1 ); j++)
+		{// remove points behind where the agent can see
+			this->_midTermPath.pop_front();
+		}
 		goalDirection = normalize(_currentLocalTarget - position());
 
 	}
 	else
 	{
+		
 		goalDirection = normalize(goalInfo.targetLocation - position());
-	}
-	//begin behaviour LEADER FOLLOWING: check if leader follower
-	if(leader_following){ 
-	
-		//get the closest of possible leaders and follow him
-		bool leaderfound=0;float closestDistance=INFINITY;std::vector<SocialForcesAgent*> leaders=SocialForcesAgent::leaders;
-		for(unsigned int i=0;i<SocialForcesAgent::leaders.size();i++)
+		if((!goalVisible))
 		{
-			if (leaders[i]->enabled()==false)continue;if(leaders[i]==this)continue;
-			if((follow_visible_leader)&&(!this->hasLineOfSightTo(leaders[i]->position())))continue;//only follow visible leaders?
-			if((leaders[i]->position()-_position).length()<closestDistance)
-			{
-				closestDistance=(leaders[i]->position()-_position).length();
-				leaderPosition=leaders[i]->position();leaderfound=true;
-				leader=leaders[i];
-			}
+			replan_wait++;
+			if((replan_wait>20)||replan){replan_wait=0;replan=false;computePath(_goalQueue.front().targetLocation, false);}
 		}
-		if(leaderfound)
-		{	
-			goalDirection = normalize((leaderPosition - position())+normalize(goalInfo.targetLocation - position())*sqrt((goalInfo.targetLocation - position()).length()));
-			//take the goal into account or multiple leaders/followers may deadlock
-			
-			//move out of leader's way by casting rays from leader's left and right side and see if they intersect with oneself to know whether one is on the leader's way
-			Util::Ray leftray,rightray;
-			leftray.pos=leaderPosition-rightSideInXZPlane(leader->forward())*leader->radius();leftray.dir=leader->forward();
-			rightray.pos=leaderPosition-rightSideInXZPlane(leader->forward())*leader->radius();rightray.dir=leader->forward();
-			float intersection;
-			if(Util::rayIntersectsCircle2D(_position,this->radius(),leftray,intersection)){goalDirection-=rightSideInXZPlane(leader->forward())*avoiding_leaders_path_force;}
-			else if(Util::rayIntersectsCircle2D(_position,this->radius(),rightray,intersection)){goalDirection+=rightSideInXZPlane(leader->forward())*avoiding_leaders_path_force;}
-		}
-		//debug
-		else{if(!err){std::cerr <<"Agent "<< name <<" #"<< this->id() <<":leader not found!";err=true;}}
-		
-		
 	}
+	
+	if(useLeader&&hasLineOfSightTo(myGoal->leader->position()))
+	{ 
+			goalDirection = normalize( (myGoal->leader->position() - position())/5+goalDirection);
+			
+	}
+		
 	// _prefVelocity = goalDirection * PERFERED_SPEED;
-	Util::Vector prefForce = (((goalDirection * PERFERED_SPEED) - velocity()) / (_SocialForcesParams.sf_acceleration/dt)); //assumption here
+	Util::Vector prefForce = (((goalDirection * sf_preferred_speed) - velocity()) / (sf_acceleration/dt)); //assumption here
 	prefForce = prefForce + velocity();
 	// _velocity = prefForce;
+	
+	
+	
 
-	Util::Vector repulsionForce = calcRepulsionForce(dt);
+	Util::Vector wallRepulsionForce = calcWallRepulsionForce(dt);
+	Util::Vector agentRepulsionForce = sf_agent_repulsion_importance*calcAgentRepulsionForce(dt);
+	
+	
+	Util::Vector repulsionForce=wallRepulsionForce+agentRepulsionForce;
 	if ( repulsionForce.x != repulsionForce.x)
 	{
 		std::cout << "Found some nan" << std::endl;
@@ -1142,13 +987,31 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 	{
 		alpha=0;
 	}
-
-	_velocity = (prefForce) + repulsionForce + proximityForce;
-	// _velocity = (prefForce);
-	// _velocity = velocity() + repulsionForce + proximityForce;
-
-	_velocity = clamp(velocity(), _SocialForcesParams.sf_max_speed);
+	
+	
+	
+	//acceleration leads to tiredness
+	Util::Vector oldv=_velocity;
+	
+	double nearGoalDiscount=1-1/(goalInfo.targetLocation - position()).length();
+	_velocity = (prefForce) + repulsionForce + (goalVisible?nearGoalDiscount:1)*proximityForce;//ignore other forces when very close to the goal, because the weight avoidance can cause high-weight agents to get stuck around the goal in a vortex
+	
+	//to avoid getting pushed over the edge, and causing lots of collisions(seems agents over the edge can't do collision avoidance)
+	//if(position().x<=gSpatialDatabase->getOriginX()+1)_velocity.x=MAX(_velocity.x,0);
+	//if(position().z<=gSpatialDatabase->getOriginZ()+1)_velocity.z=MAX(_velocity.z,0);
+	//if(position().x>=gSpatialDatabase->getOriginX()+gSpatialDatabase->getGridSizeX()-1)_velocity.x=MIN(_velocity.x,0);
+	//if(position().z>=gSpatialDatabase->getOriginZ()+gSpatialDatabase->getGridSizeZ()-1)_velocity.z=MIN(_velocity.z,0);
+	
+	
+	_velocity = clamp(velocity(), sf_max_speed);
+	_velocity.x*=1/(1+tiredness_x);_velocity.z*=1/(1+tiredness_z);
 	_velocity.y=0.0f;
+	sf_sliding_friction_force=gModule->sf_sliding_friction_force*MAX(0.2,_velocity.length()/sf_preferred_speed);
+	sf_wall_a=WALL_A*MAX(0.2,_velocity.length()/sf_preferred_speed);
+	double accel_x=(_velocity-oldv).x;accel_x=MAX(accel_x,-accel_x);double accel_z=(_velocity-oldv).z;accel_z=MAX(accel_z,-accel_z);
+	tiredness_x=MIN(accel_x*0.1+tiredness_x,50);tiredness_z=MIN(accel_z*0.1+tiredness_z,50);tiredness_x*=0.98;tiredness_z*=0.98;
+	
+	if((_velocity.length()<sf_preferred_speed*0.1)||tiredness_x+tiredness_z>10){framesWithoutProgress++;}
 #ifdef _DEBUG_
 	std::cout << "agent" << id() << " speed is " << velocity().length() << std::endl;
 #endif
@@ -1170,7 +1033,7 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 	}
 	*/
 	/*
-	 * Now do the conversion from SocialForcesAgent into the SteerSuite coordinates
+	 * Now do the conversion from IFAgent into the SteerSuite coordinates
 	 */
 	// _velocity.y = 0.0f;
 
@@ -1186,10 +1049,6 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 			// in this case, there are still more goals, so start steering to the next goal.
 			goalDirection = _goalQueue.front().targetLocation - _position;
 			_prefVelocity = Util::Vector(goalDirection.x, 0.0f, goalDirection.z);
-			
-			//begin behaviors: update all parameters and cached info for new goal
-			should_update_behaviours=true;
-			//end behaviours
 		}
 		else
 		{
@@ -1207,24 +1066,91 @@ void SocialForcesAgent::updateAI(float timeStamp, float dt, unsigned int frameNu
 		// Otherwise keep last forward
 		_forward = normalize(_velocity);
 	}
-	// _position = _position + (_velocity * dt);
-
+	
+	
+	
+	
+		///////////////////////////////////////
+	//my interactive weight - punish agents that block or bump into others
+	//the one who triggers this code is assumed to be the offender, as collisions will be removed after being discovered if possible
+	std::set<SteerLib::SpatialDatabaseItemPtr> _neighbors;int agentCount=0;
+	getSimulationEngine()->getSpatialDatabase()->getItemsInRange(_neighbors,
+			_position.x-(this->_radius + sf_query_radius),
+			_position.x+(this->_radius + sf_query_radius),
+			_position.z-(this->_radius + sf_query_radius),
+			_position.z+(this->_radius + sf_query_radius),
+			(this));
+	SteerLib::AgentInterface * tmp_agent;
+	for (std::set<SteerLib::SpatialDatabaseItemPtr>::iterator neighbour = _neighbors.begin();  neighbour != _neighbors.end();  neighbour++)
+	{
+		if ( (*neighbour)->isAgent() ){agentCount++;tmp_agent = dynamic_cast<SteerLib::AgentInterface *>(*neighbour);}else{continue;}
+		if (id()!= tmp_agent->id())
+		{
+			IFAgent* a=dynamic_cast<IFAgent *>(*neighbour); double d=(this->position()-tmp_agent->position()).length();Util::Vector away=(this->position()-tmp_agent->position());
+			double x=((this->radius()+tmp_agent->radius()+sf_personal_space_threshold)-d)/d;
+			double my=(goalDirection*(-1*away))/d;//if you are going directly against another you should give up some weight, but agents who already have lots of weight are less likely to lose weight, to make sure a line that's already moving forward should not be easily cut off
+			if(a && (x>0)&&(my>0)){double tempw=MIN(weight,1/weight);weight-=tempw*x*my;a->weight+=tempw*x*my;}//test, try to see what weight really does, before deciding how to update it
+			
+		}
+	}
+	weight*=MIN(1,1-(1-_velocity.length()/sf_preferred_speed)*0.5);//people already moving should get more weight, stuck ones should get less weight but slowly
+	if(weight>maxWeight){weight=maxWeight;}
+	if(weight<1){weight+=0.01;}
+	
+	//stuck elimination
+	
 }
 
 
-void SocialForcesAgent::draw()
+void IFAgent::draw()
 {
-#ifdef ENABLE_GUI
-	
-	// if the agent is selected, do some annotations just for demonstration
 
-	//for spinning the star
+	if(_midTermPath.empty())
+	{
+		this->_color = Util::gRed;
+	}
+	else
+	{
+		if(myGoal->leader==this)this->_color = Util::gDarkCyan;
+		else{this->_color = Util::gBlue;}
+	}
 	
+	Util::DrawLib::drawLine(position(), position()+goalDirection*weight, Util::Color(0.5f, 0.5f, 0.5f), 2);
+	Util::DrawLib::drawLine(position(), position()+Util::Vector(1,0,0)*tiredness_x, Util::Color(0.8f, 0.0f, 0.8f), 2);
+	Util::DrawLib::drawLine(position(), position()+Util::Vector(0,0,1)*tiredness_z, Util::Color(0.8f, 0.0f, 0.8f), 2);
 	
-	
+#ifdef ENABLE_GUI
 	AgentInterface::draw();
-	Util::DrawLib::drawStar(position(), rotateInXZPlane(_forward, theta), _radius*3, Util::Color(_color.r*0.8+0.2,_color.g*0.8+0.2,_color.b*0.8+0.2));theta+=0.01/radius();if (theta>6.28){theta-=6.28;}//hack to rotate a star
-	
+	// if the agent is selected, do some annotations just for demonstration
+if (gEngine->isAgentSelected(this)) {
+		//replan=true;
+		
+	int currIndex = gSpatialDatabase->getCellIndexFromLocation(_position);
+	unsigned int currGridCoordX; unsigned int currGridCoordZ;
+	gSpatialDatabase-> getGridCoordinatesFromIndex(currIndex, currGridCoordX, currGridCoordZ);
+	int gridMaxX = gSpatialDatabase->getNumCellsX(); int gridMaxZ = gSpatialDatabase->getNumCellsZ();
+	for (unsigned int i=currGridCoordX-2; i<=currGridCoordX+2; i++) 
+	{
+		for (unsigned int j=currGridCoordZ-2; j<=currGridCoordZ+2; j++) {
+			if(((j!=currGridCoordZ)||(i!=currGridCoordX))&&(i>=0)&&(i<=gridMaxX)&&(j>=0)&&(j<=gridMaxZ))
+			{
+				int Id = gSpatialDatabase->getCellIndexFromGridCoords(i,j);
+				//get clear status
+				if(myGoal->nodes[Id].isClear()==false){Util::DrawLib::drawCircle(myGoal->nodes[Id].point, Util::Color(0.5f, 0.0f, 0.5f),0.5f);continue;}
+				if(myGoal->nodes[Id].next!=NULL){Util::DrawLib::drawLine(myGoal->nodes[Id].point, myGoal->nodes[Id].point+(myGoal->nodes[Id].next->point-myGoal->nodes[Id].point)/2, Util::Color(0.0f, 0.5f, 0.0f), 2);}
+			}
+		}
+	}	
+		
+
+	//debug: show known walkable/unwalkable grids
+	if(path.size()>0)
+	{
+		for(unsigned int i = 1; i<path.size(); ++i)
+		{Util::DrawLib::drawLine(path[i-1], path[i], Util::Color(1.0f, 0.0f, 0.0f), 2);Util::DrawLib::drawCircle(path[i], Util::Color(0.5f, 0.5f, 0.0f),0.2f);}
+		Util::DrawLib::drawCircle(path[path.size()-1], Util::Color(0.0f, 1.0f, 0.0f));
+	}
+	}
 #ifdef DRAW_COLLISIONS
 	std::set<SteerLib::SpatialDatabaseItemPtr> _neighbors;
 	getSimulationEngine()->getSpatialDatabase()->getItemsInRange(_neighbors, _position.x-(this->_radius * 3), _position.x+(this->_radius * 3),
@@ -1267,7 +1193,7 @@ void SocialForcesAgent::draw()
 
 	for (int i=0; ( _waypoints.size() > 1 ) && (i < (_waypoints.size() - 1)); i++)
 	{
-		if ( _gEngine->isAgentSelected(this) )
+		if ( gEngine->isAgentSelected(this) )
 		{
 			DrawLib::drawLine(_waypoints.at(i), _waypoints.at(i+1), gYellow);
 		}
@@ -1284,7 +1210,7 @@ void SocialForcesAgent::draw()
 
 	for (int i=0; ( _midTermPath.size() > 1 ) && (i < (_midTermPath.size() - 1)); i++)
 	{
-		if ( _gEngine->isAgentSelected(this) )
+		if ( gEngine->isAgentSelected(this) )
 		{
 			DrawLib::drawLine(_midTermPath.at(i), _midTermPath.at(i+1), gMagenta);
 		}
